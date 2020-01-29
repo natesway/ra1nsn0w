@@ -36,6 +36,7 @@ static struct option longopts[] = {
     { "dump-apticket",      required_argument,      NULL,  2  },
     { "ra1nra1n",           required_argument,      NULL,  3  },
     { "sn0wsn0w",           no_argument,            NULL,  4  },
+    { "kernel-save",        required_argument,      NULL,  5  },
     { NULL, 0, NULL, 0 }
 };
 
@@ -112,6 +113,8 @@ void cmd_help(){
     printf("\nTools:\n");
     printf("     --dump-apticket <path>\tDumps APTicket and writes shsh2 file to path\n");
     printf("     --ra1nra1n <path>\tExecute payload before jumping to kernel\n");
+    printf("     --kernel-save <path>\tPath to save patched kernel\n");
+    printf("            (Example --kernel-save /User/matty/Desktop/kernel.dump You must specify a file path not just a folder)\n");
 
     printf("\n");
 }
@@ -129,6 +132,7 @@ int main_r(int argc, const char * argv[]) {
     cleanup([&]{
         safeFree(im4m);
     });
+    bool savingKernel = false;
     bool toolsIsSelected = false;
     launchConfig cfg = {};
 
@@ -140,6 +144,7 @@ int main_r(int argc, const char * argv[]) {
 
     const char *apticketPath = NULL;
     const char *buildid = NULL;
+    const char *savePath = NULL;
     uint64_t ecid = 0;
 
     const char *shshDumpOutPath = NULL;
@@ -178,6 +183,10 @@ int main_r(int argc, const char * argv[]) {
                 retassure(!toolsIsSelected, "only one tools option can be used at a time!");
                 toolsIsSelected = true;
                 cfg.ra1nra1nPath = optarg;
+                break;
+            case 5: // long option: "patched kernel save path"
+                savingKernel = true;
+                savePath = optarg;
                 break;
             case 4:
                 cfg.doJailbreakPatches = true;
@@ -264,8 +273,12 @@ int main_r(int argc, const char * argv[]) {
         }
     }
     
-    
-    launchDevice(device, ipswUrl, {im4m, im4mSize}, cfg);
+    if (savingKernel) {
+        launchDevice(device, ipswUrl, savePath,  {im4m, im4mSize}, cfg);
+    } else {
+        savePath = "nope";
+        launchDevice(device, ipswUrl, savePath,  {im4m, im4mSize}, cfg);
+    }
     
     if (shshDumpOutPath) {
         dumpAPTicket(device, shshDumpOutPath);

@@ -36,6 +36,19 @@ static void fragmentzip_callback(unsigned int progress){
     printf("\n");
 }
 
+void saveToFile(const char *filePath, const void *buf, size_t bufSize){
+    FILE *f = NULL;
+    cleanup([&]{
+        if (f) {
+            fclose(f);
+        }
+    });
+
+    retassure(f = fopen(filePath, "wb"), "failed to create file");
+    retassure(fwrite(buf, 1, bufSize, f) == bufSize, "failed to write to file");
+}
+
+
 plist_t getBuildidentityWithBoardconfig(plist_t buildManifest, const char *boardconfig){
     plist_t rt = NULL;
     plist_t buildidentities = plist_dict_get_item(buildManifest, "BuildIdentities");
@@ -116,7 +129,7 @@ img4tool::ASN1DERElement img4FromIM4PandIM4M(const img4tool::ASN1DERElement &im4
     return img4;
 }
 
-void ra1nsn0w::launchDevice(iOSDevice &idev, std::string firmwareUrl, const img4tool::ASN1DERElement &im4m, const launchConfig &cfg){
+void ra1nsn0w::launchDevice(iOSDevice &idev, std::string firmwareUrl, std::string path, const img4tool::ASN1DERElement &im4m, const launchConfig &cfg){
     fragmentzip_t *fzinfo = NULL;
     char *buildmanifestBuf = NULL;
     size_t buildmanifestBufSize = 0;
@@ -133,6 +146,8 @@ void ra1nsn0w::launchDevice(iOSDevice &idev, std::string firmwareUrl, const img4
     char *dtreBuf = NULL;   size_t dtreBufSize = 0;
     
     char *buildnum = NULL;
+    std::string kernelSavePath = path;
+    std::string compared = "nope";
 
     cleanup([&]{
         safeFree(buildnum);
@@ -413,6 +428,11 @@ void ra1nsn0w::launchDevice(iOSDevice &idev, std::string firmwareUrl, const img4
             throw;
         }
         ppKernel = {};//if transfer succeeds, discard second copy of buffer
+    
+        if (kernelSavePath.compare(compared) != 0) {
+            printf("Dumping patched kernel to: %s\n", kernelSavePath.c_str());
+            saveToFile(kernelSavePath.c_str(), pkernel.buf(), pkernel.size());
+        }
         pkernel = img4tool::renameIM4P(pkernel, "rkrn");
     }
     
