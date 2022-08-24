@@ -1,6 +1,6 @@
 # ra1nsn0w
 
-## Information
+## Informatio
 
 This is just my fork of ra1nsn0w that allows you to save the patched kernel to a file
 
